@@ -22,6 +22,7 @@ const svg = (d, cls) => { const s = document.createElementNS("http://www.w3.org/
 const pad = n => String(n).padStart(2, "0");
 const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const parseYmd = s => { const [y, m, d] = s.slice(0, 10).split("-").map(Number); return new Date(y, m - 1, d); };
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const TODAY = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
 const eur = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" });
 const eurC = c => eur.format(c / 100);
@@ -272,12 +273,13 @@ function renderResumo() {
   const done = S.items.reduce((a, it) => a + S.people.filter(p => ["tratado", "nao"].includes(statusOf(it, p.id))).length, 0);
 
   const hero = h("div", { class: "hero" },
-    (() => { const e = svg("", "hero-peaks"); e.setAttribute("viewBox", "0 0 800 220"); e.setAttribute("preserveAspectRatio", "xMidYMax slice"); e.setAttribute("aria-hidden", "true"); return e; })(),
+    h("img", { class: "hero-land", src: "landscape.svg", alt: "", "aria-hidden": "true" }),
+    h("div", { class: "hero-snow", "aria-hidden": "true" }),
     h("div", { class: "hero-in" },
       h("p", { class: "eyebrow" }, "Méribel · Les 3 Vallées · 5 — 10 janeiro 2027"),
-      h("h1", { class: "display" }, days > 0 ? [h("span", { class: "num" }, days), days === 1 ? " dia" : " dias", h("span", { class: "dim" }, " para a neve.")] : days > -6 ? ["Estamos ", h("span", { class: "dim" }, "na neve.")] : "Até à próxima."),
+      countdown(),
       h("p", { class: "hero-sub" }, st.name ? [st.name, st.address ? " · " + st.address : ""] : "Alojamento por fechar.", " ", h("a", { href: "#viagem", class: "link light" }, st.name ? "Ver" : "Adicionar"))));
-  hero.querySelector(".hero-peaks").innerHTML = '<path d="M0 220 L0 150 L90 90 L150 120 L240 40 L330 120 L400 80 L480 140 L570 60 L650 120 L720 95 L800 130 L800 220Z" fill="currentColor" opacity=".18"/><path d="M0 220 L0 180 L120 130 L220 170 L320 120 L430 175 L540 130 L660 180 L800 150 L800 220Z" fill="currentColor" opacity=".3"/>';
+  snowIn(hero.querySelector(".hero-snow"), 70);
 
   const kpis = h("div", { class: "kpis" },
     kpi("Gasto pelo grupo", eurC(total), `${eurC(Math.round(total / S.people.length))} por pessoa`, "#despesas"),
@@ -306,6 +308,30 @@ function renderResumo() {
 
   v.replaceChildren(hero, quickBar(), kpis, h("div", { class: "grid-2" }, mineBlock, h("div", { class: "stack" }, todoBlock, expBlock)));
 }
+/* Live countdown to the first day; ticks every second while Resumo is open. */
+const tripStart = () => parseYmd(trip().start);
+function countdown() {
+  const el = h("div", { class: "cd", id: "cd" });
+  paintCountdown(el);
+  return el;
+}
+function paintCountdown(el) {
+  const ms = tripStart() - new Date(), end = addDays(parseYmd(trip().end), 1) - new Date();
+  if (ms <= 0) { el.replaceChildren(h("h1", { class: "display" }, end > 0 ? "Estamos na neve." : "Até à próxima.")); el.dataset.done = "1"; return; }
+  const d = Math.floor(ms / 864e5), hh = Math.floor(ms / 36e5) % 24, mm = Math.floor(ms / 6e4) % 60, ss = Math.floor(ms / 1e3) % 60;
+  const parts = [[d, d === 1 ? "dia" : "dias"], [hh, "horas"], [mm, "min"], [ss, "seg"]];
+  if (!el.firstChild) {
+    el.append(h("p", { class: "cd-label" }, "Faltam"), h("div", { class: "cd-row" }, parts.map(([, l], i) => h("div", { class: "cd-u" + (i === 0 ? " big" : "") }, h("b", { class: "num" }), h("span", null, l)))));
+  }
+  el.querySelectorAll(".cd-u").forEach((u, i) => {
+    const v = i === 0 ? String(parts[i][0]) : pad(parts[i][0]);
+    const b = u.querySelector("b");
+    if (b.textContent !== v) { b.textContent = v; if (i === 3 || b.dataset.init) { b.classList.remove("flip"); void b.offsetWidth; b.classList.add("flip"); } b.dataset.init = "1"; }
+    u.querySelector("span").textContent = parts[i][1];
+  });
+}
+setInterval(() => { const el = document.getElementById("cd"); if (el && !el.dataset.done && S.view === "resumo") paintCountdown(el); }, 1000);
+
 function kpi(label, value, sub, href, tone) {
   return h("a", { class: "kpi " + (tone || ""), href }, h("span", { class: "kl" }, label), h("b", { class: "kv num" }, value), h("span", { class: "ks" }, sub));
 }
@@ -647,10 +673,10 @@ function renderInfo() {
 }
 
 /* ================= login snow ================= */
-function snow() {
-  const box = document.querySelector(".snow");
+function snow() { snowIn(document.querySelector(".snow"), 60); }
+function snowIn(box, count) {
   if (!box || box.childElementCount || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < count; i++) {
     const s = h("i"), size = 2 + Math.random() * 4;
     s.style.cssText = `left:${Math.random() * 100}%;width:${size}px;height:${size}px;animation-duration:${8 + Math.random() * 10}s;animation-delay:${-Math.random() * 18}s;opacity:${.35 + Math.random() * .5}`;
     box.append(s);
