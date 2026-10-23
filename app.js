@@ -1,7 +1,7 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
 import { SUPABASE_URL, SUPABASE_KEY, LOGINS } from "./config.js";
 import { CATS, parseQuick, balances, settle, defaultStatus, NEXT_STATUS } from "./logic.js";
-import { buildHero, setHeroSub, loginMedia } from "./hero.js";
+import { buildHero, setHeroSub, loginMedia, buildStory, preloader, cursor, progress } from "./hero.js";
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: "meribel-auth" } });
 
@@ -154,6 +154,8 @@ function route() {
   S.view = VIEWS.some(([k]) => k === v) ? v : "resumo";
   VIEWS.forEach(([k]) => { $("#v-" + k).hidden = k !== S.view; });
   $("#hero").hidden = S.view !== "resumo";
+  $("#story").hidden = S.view !== "resumo";
+  progress(S.view === "resumo");
   document.body.classList.toggle("view-resumo", S.view === "resumo");
   document.querySelectorAll("#nav a, #tabbar a").forEach(a => a.classList.toggle("on", a.dataset.v === S.view));
   render(); moveInd(); window.scrollTo({ top: 0 }); heroState();
@@ -207,7 +209,12 @@ const adultOpts = () => S.people.filter(p => p.adult).map(p => [p.id, p.name]);
 const toLocalInput = iso => { if (!iso) return ""; const d = new Date(iso); return `${ymd(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 
 /* ================= shared bits ================= */
-const head = (title, sub, ...right) => h("div", { class: "view-head" }, h("div", null, h("h2", { class: "display-s" }, title), sub ? h("p", { class: "muted" }, sub) : null), h("div", { class: "head-r" }, ...right));
+const head = (title, sub, ...right) => {
+  const i = VIEWS.findIndex(([k]) => k === S.view);
+  return h("div", { class: "view-head" },
+    h("div", { class: "vh-top" }, h("span", { class: "lbl" }, `${pad(i + 1)} / ${pad(VIEWS.length)}`), h("span", { class: "lbl" }, "Méribel 2027 · 05—10.01")),
+    h("div", { class: "vh-row" }, h("h2", { class: "display-s" }, h("span", { class: "ln" }, h("span", null, title))), h("div", { class: "head-r" }, sub ? h("p", null, sub) : null, ...right)));
+};
 const empty = t => h("p", { class: "empty" }, t);
 function splitLabel(e) {
   const n = e.split.length, all = S.people.length;
@@ -278,6 +285,7 @@ function renderResumo() {
   const done = S.items.reduce((a, it) => a + S.people.filter(p => ["tratado", "nao"].includes(statusOf(it, p.id))).length, 0);
 
   buildHero($("#hero"), { start: parseYmd(t.start), end: addDays(parseYmd(t.end), 1), onScrollDown: () => window.scrollTo({ top: innerHeight - 70, behavior: "smooth" }) });
+  buildStory($("#story"));
   setHeroSub($("#hero"), st.name ? `${st.name}${st.address ? " · " + st.address : ""}` : `Alojamento por fechar · ${pending} coisas por tratar`);
 
   const kpis = h("div", { class: "kpis" },
@@ -305,7 +313,7 @@ function renderResumo() {
     h("div", { class: "block-head" }, h("h3", null, "Últimas despesas"), h("a", { href: "#despesas", class: "link small" }, "Ver saldos")),
     recent.length ? h("div", { class: "list" }, recent.map(expRow)) : empty("Ainda não há despesas."));
 
-  v.replaceChildren(quickBar(), kpis, h("div", { class: "grid-2" }, mineBlock, h("div", { class: "stack" }, todoBlock, expBlock)));
+  v.replaceChildren(h("div", { class: "sec-title" }, h("h2", null, "Ponto de situação"), h("span", { class: "lbl" }, cap(F.day.format(TODAY())))), quickBar(), kpis, h("div", { class: "grid-2" }, mineBlock, h("div", { class: "stack" }, todoBlock, expBlock)));
 }
 function kpi(label, value, sub, href, tone) {
   return h("a", { class: "kpi " + (tone || ""), href }, h("span", { class: "kl" }, label), h("b", { class: "kv num" }, value), h("span", { class: "ks" }, sub));
@@ -659,5 +667,7 @@ function snowIn(box, count) {
 }
 
 /* ================= boot ================= */
+cursor();
+await preloader();
 sb.auth.onAuthStateChange((ev) => { if (ev === "SIGNED_OUT") { S.me = null; } });
 start();
