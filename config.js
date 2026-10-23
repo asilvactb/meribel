@@ -3,9 +3,9 @@
 export const SUPABASE_URL = "https://ebzxlyqofhtlnahxpyow.supabase.co";
 export const SUPABASE_KEY = "sb_publishable_yYpvz-IprBd-NVzBsiV-3Q_vJLBs0Vx";
 
-// Who can log in. Friends use a login made for the trip; Alexandre uses his existing account.
+// Who can log in. Each adult has a trip-only account; children have none.
 export const LOGINS = [
-  { id: "alexandre", name: "Alexandre", email: "asilva.ctb@gmail.com" },
+  { id: "alexandre", name: "Alexandre", email: "alexandre@meribel.invalid" },
   { id: "jose", name: "José Inácio", email: "jose@meribel.invalid" },
   { id: "ricardo", name: "Ricardo", email: "ricardo@meribel.invalid" },
   { id: "miguel", name: "Miguel", email: "miguel@meribel.invalid" },

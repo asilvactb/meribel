@@ -69,7 +69,7 @@ select{appearance:none;-webkit-appearance:none;padding-right:28px;background-ima
 .login-bottom{display:flex;align-items:flex-end;justify-content:space-between;gap:28px;flex-wrap:wrap}
 .login-form{display:grid;gap:12px;width:min(440px,100%);background:color-mix(in srgb,#fff 78%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);padding:20px;border-radius:28px;box-shadow:var(--shadow-h)}
 .lf-title{font-weight:650;font-size:17px}
-.who-pick{display:flex;flex-wrap:wrap;gap:8px}
+.login-select{width:100%;height:50px;border-radius:16px;font-weight:600;font-size:16px;padding:0 40px 0 16px;background-position:right 14px center}
 .who{height:40px;padding:0 16px;border-radius:999px;background:var(--card-2);font-weight:600;font-size:15px;transition:background .2s,color .2s,transform .3s var(--spring)}
 .who:hover{transform:translateY(-1px)}
 .who.on{background:var(--ink);color:#fff}

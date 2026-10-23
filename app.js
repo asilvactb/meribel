@@ -99,22 +99,18 @@ const statusOf = (item, pid) => S.status.find(s => s.item_id === item.id && s.pe
 let picked = null;
 function showLogin() {
   $("#app").hidden = true; $("#denied").hidden = true; $("#login").hidden = false;
-  const box = $("#who-pick"); box.replaceChildren();
+  const sel = $("#login-who");
+  sel.replaceChildren(h("option", { value: "", disabled: true }, "Escolhe o teu nome"), ...LOGINS.map(l => h("option", { value: l.id }, l.name)));
   let last = null; try { last = localStorage.getItem("meribel_who"); } catch {}
-  LOGINS.forEach(l => box.append(h("button", { type: "button", class: "who" + (l.id === last ? " on" : ""), "data-id": l.id, onclick: () => pick(l.id) }, l.name)));
-  if (last) pick(last);
+  sel.value = LOGINS.some(l => l.id === last) ? last : "";
+  sel.onchange = () => { picked = LOGINS.find(l => l.id === sel.value); $("#login-pass").focus(); };
+  picked = LOGINS.find(l => l.id === sel.value) || null;
   requestAnimationFrame(() => document.body.classList.add("ready"));
   snow();
 }
-function pick(id) {
-  picked = LOGINS.find(l => l.id === id);
-  document.querySelectorAll(".who").forEach(b => b.classList.toggle("on", b.dataset.id === id));
-  $("#pass-row").hidden = false; $("#login-msg").textContent = `Olá ${picked.name.split(" ")[0]}. Mete a tua password.`;
-  setTimeout(() => $("#login-pass").focus(), 50);
-}
 $("#login-form").addEventListener("submit", async e => {
   e.preventDefault();
-  if (!picked) return;
+  if (!picked) { $("#login-msg").textContent = "Escolhe primeiro o teu nome."; return; }
   const msg = $("#login-msg"); msg.textContent = "A entrar…";
   const { error } = await sb.auth.signInWithPassword({ email: picked.email, password: $("#login-pass").value });
   if (error) { msg.textContent = "Password errada. Tenta outra vez."; return; }
