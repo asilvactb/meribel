@@ -1,0 +1,4 @@
+-- Applied to Supabase as migration "trip_meribel_schema". Kept here for reference.
+-- Tables: trip_families, trip_people, trip_settings, trip_expenses, trip_transfers, trip_items,
+-- trip_item_status, trip_todos, trip_packing, trip_packing_done, trip_travel, trip_plan.
+-- Every table: RLS on, policy "trip_members" for authenticated using trip_is_member().
