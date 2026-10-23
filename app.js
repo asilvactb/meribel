@@ -1,6 +1,7 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
 import { SUPABASE_URL, SUPABASE_KEY, LOGINS } from "./config.js";
 import { CATS, parseQuick, balances, settle, defaultStatus, NEXT_STATUS } from "./logic.js";
+import { buildHero, setHeroSub, loginMedia } from "./hero.js";
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: "meribel-auth" } });
 
@@ -106,6 +107,7 @@ function showLogin() {
   sel.value = LOGINS.some(l => l.id === last) ? last : "";
   sel.onchange = () => { picked = LOGINS.find(l => l.id === sel.value); $("#login-pass").focus(); };
   picked = LOGINS.find(l => l.id === sel.value) || null;
+  loginMedia($(".login-media"));
   requestAnimationFrame(() => document.body.classList.add("ready"));
   snow();
 }
@@ -151,13 +153,16 @@ function route() {
   const v = location.hash.slice(1);
   S.view = VIEWS.some(([k]) => k === v) ? v : "resumo";
   VIEWS.forEach(([k]) => { $("#v-" + k).hidden = k !== S.view; });
+  $("#hero").hidden = S.view !== "resumo";
+  document.body.classList.toggle("view-resumo", S.view === "resumo");
   document.querySelectorAll("#nav a, #tabbar a").forEach(a => a.classList.toggle("on", a.dataset.v === S.view));
-  render(); moveInd(); window.scrollTo({ top: 0 });
+  render(); moveInd(); window.scrollTo({ top: 0 }); heroState();
 }
 window.addEventListener("hashchange", route);
 window.addEventListener("resize", moveInd);
 let lastY = 0;
-window.addEventListener("scroll", () => { const y = scrollY, top = $("#top"); top.classList.toggle("scrolled", y > 8); top.classList.toggle("hide", y > lastY && y > 140); lastY = y; }, { passive: true });
+const heroState = () => document.body.classList.toggle("on-hero", S.view === "resumo" && !!S.me && scrollY < innerHeight - 90);
+window.addEventListener("scroll", () => { heroState(); const y = scrollY, top = $("#top"); top.classList.toggle("scrolled", y > 8); top.classList.toggle("hide", y > lastY && y > 140); lastY = y; }, { passive: true });
 
 function render() {
   if (!S.me) return;
@@ -272,14 +277,8 @@ function renderResumo() {
   const cells = S.items.length * S.people.length || 1;
   const done = S.items.reduce((a, it) => a + S.people.filter(p => ["tratado", "nao"].includes(statusOf(it, p.id))).length, 0);
 
-  const hero = h("div", { class: "hero" },
-    h("img", { class: "hero-land", src: "landscape.svg", alt: "", "aria-hidden": "true" }),
-    h("div", { class: "hero-snow", "aria-hidden": "true" }),
-    h("div", { class: "hero-in" },
-      h("p", { class: "eyebrow" }, "Méribel · Les 3 Vallées · 5 — 10 janeiro 2027"),
-      countdown(),
-      h("p", { class: "hero-sub" }, st.name ? [st.name, st.address ? " · " + st.address : ""] : "Alojamento por fechar.", " ", h("a", { href: "#viagem", class: "link light" }, st.name ? "Ver" : "Adicionar"))));
-  snowIn(hero.querySelector(".hero-snow"), 70);
+  buildHero($("#hero"), { start: parseYmd(t.start), end: addDays(parseYmd(t.end), 1), onScrollDown: () => window.scrollTo({ top: innerHeight - 70, behavior: "smooth" }) });
+  setHeroSub($("#hero"), st.name ? `${st.name}${st.address ? " · " + st.address : ""}` : `Alojamento por fechar · ${pending} coisas por tratar`);
 
   const kpis = h("div", { class: "kpis" },
     kpi("Gasto pelo grupo", eurC(total), `${eurC(Math.round(total / S.people.length))} por pessoa`, "#despesas"),
@@ -306,32 +305,8 @@ function renderResumo() {
     h("div", { class: "block-head" }, h("h3", null, "Últimas despesas"), h("a", { href: "#despesas", class: "link small" }, "Ver saldos")),
     recent.length ? h("div", { class: "list" }, recent.map(expRow)) : empty("Ainda não há despesas."));
 
-  v.replaceChildren(hero, quickBar(), kpis, h("div", { class: "grid-2" }, mineBlock, h("div", { class: "stack" }, todoBlock, expBlock)));
+  v.replaceChildren(quickBar(), kpis, h("div", { class: "grid-2" }, mineBlock, h("div", { class: "stack" }, todoBlock, expBlock)));
 }
-/* Live countdown to the first day; ticks every second while Resumo is open. */
-const tripStart = () => parseYmd(trip().start);
-function countdown() {
-  const el = h("div", { class: "cd", id: "cd" });
-  paintCountdown(el);
-  return el;
-}
-function paintCountdown(el) {
-  const ms = tripStart() - new Date(), end = addDays(parseYmd(trip().end), 1) - new Date();
-  if (ms <= 0) { el.replaceChildren(h("h1", { class: "display" }, end > 0 ? "Estamos na neve." : "Até à próxima.")); el.dataset.done = "1"; return; }
-  const d = Math.floor(ms / 864e5), hh = Math.floor(ms / 36e5) % 24, mm = Math.floor(ms / 6e4) % 60, ss = Math.floor(ms / 1e3) % 60;
-  const parts = [[d, d === 1 ? "dia" : "dias"], [hh, "horas"], [mm, "min"], [ss, "seg"]];
-  if (!el.firstChild) {
-    el.append(h("p", { class: "cd-label" }, "Faltam"), h("div", { class: "cd-row" }, parts.map(([, l], i) => h("div", { class: "cd-u" + (i === 0 ? " big" : "") }, h("b", { class: "num" }), h("span", null, l)))));
-  }
-  el.querySelectorAll(".cd-u").forEach((u, i) => {
-    const v = i === 0 ? String(parts[i][0]) : pad(parts[i][0]);
-    const b = u.querySelector("b");
-    if (b.textContent !== v) { b.textContent = v; if (i === 3 || b.dataset.init) { b.classList.remove("flip"); void b.offsetWidth; b.classList.add("flip"); } b.dataset.init = "1"; }
-    u.querySelector("span").textContent = parts[i][1];
-  });
-}
-setInterval(() => { const el = document.getElementById("cd"); if (el && !el.dataset.done && S.view === "resumo") paintCountdown(el); }, 1000);
-
 function kpi(label, value, sub, href, tone) {
   return h("a", { class: "kpi " + (tone || ""), href }, h("span", { class: "kl" }, label), h("b", { class: "kv num" }, value), h("span", { class: "ks" }, sub));
 }
