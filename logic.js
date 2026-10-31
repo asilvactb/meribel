@@ -105,13 +105,16 @@ export function parseQuick(text, people, me) {
   }).filter(Boolean);
 }
 
-/* Per-family share of one expense, in cents. Remainders go to the first families so totals always match. */
+/* Per-family share of one expense, in cents. Leftover cents from rounding go to the payer's family first,
+   so nobody else ends up owing a stray cent. */
 export function familyShares(e, people) {
   const total = cents(e.amount), split = people.filter(p => e.split.includes(p.id));
   const out = {};
   if (!split.length) return out;
+  const payerFam = people.find(p => p.id === e.paid_by)?.family_id;
+  const payerFirst = fams => fams.includes(payerFam) ? [payerFam, ...fams.filter(f => f !== payerFam)] : fams;
   if (e.mode === "familias") {
-    const fams = [...new Set(split.map(p => p.family_id))];
+    const fams = payerFirst([...new Set(split.map(p => p.family_id))]);
     const base = Math.floor(total / fams.length); let rem = total - base * fams.length;
     fams.forEach(f => { out[f] = base + (rem-- > 0 ? 1 : 0); });
   } else {
@@ -119,7 +122,7 @@ export function familyShares(e, people) {
     let given = 0;
     const byFam = {};
     split.forEach(p => { byFam[p.family_id] = (byFam[p.family_id] || 0) + Number(p.weight ?? 1); });
-    const fams = Object.keys(byFam);
+    const fams = payerFirst(Object.keys(byFam));
     fams.forEach(f => { out[f] = Math.floor(total * byFam[f] / W); given += out[f]; });
     let rem = total - given, i = 0;
     while (rem > 0) { out[fams[i % fams.length]]++; rem--; i++; }
