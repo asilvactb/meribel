@@ -431,3 +431,5 @@ body.view-resumo main{padding-top:clamp(36px,5vw,72px)}
 .st-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,5,5,.35),rgba(5,5,5,0) 35%,rgba(5,5,5,.15) 60%,rgba(5,5,5,.85))}
 .progress{transition:opacity .4s}
 .progress.dim{opacity:0}
+/* keep accents (Ú, É) inside the line mask */
+.view-head h2 .ln,.giant .ln{padding-top:.14em;margin-top:-.14em}

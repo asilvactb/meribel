@@ -16,7 +16,7 @@ function h(tag, attrs, ...kids) {
     else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
     else el.setAttribute(k, v === true ? "" : v);
   }
-  for (const c of kids.flat()) { if (c == null || c === false) continue; el.append(c instanceof Node ? c : document.createTextNode(String(c))); }
+  for (const c of kids.flat(Infinity)) { if (c == null || c === false) continue; el.append(c instanceof Node ? c : document.createTextNode(String(c))); }
   return el;
 }
 const svg = (d, cls) => { const s = document.createElementNS("http://www.w3.org/2000/svg", "svg"); s.setAttribute("viewBox", "0 0 24 24"); if (cls) s.setAttribute("class", cls); s.innerHTML = d; return s; };
@@ -654,12 +654,12 @@ function renderInfo() {
         h("p", { class: "small" }, a("https://www.skipassmeribelmottaret.com/en/skipass-prices-3-vallees", "Preços 3 Vallées"), " · ", a("https://www.skipassmeribelmottaret.com/en/meribel-skipass-prices", "Preços Méribel"))),
       card("Como chegar",
         facts([
-          ["Genebra (GVA)", "≈ 2h15–3h de estrada. Mais voos. Transfer partilhado ≈ 60–85 € p.p.; privado ≈ 300–500 € por carrinha."],
-          ["Lyon (LYS)", "≈ 2h–2h30. Alguns transfers só vão até Moûtiers."],
+          ["Lyon (LYS)", "É onde chegamos: qua 6 jan às 17:45, volta seg 11 jan às 18:35. ≈ 2h–2h30 de estrada até Méribel. Confirmar que o transfer vai até Méribel e não só até Moûtiers."],
+          ["Genebra (GVA)", "≈ 2h15–3h de estrada. Transfer partilhado ≈ 60–85 € p.p.; privado ≈ 300–500 € por carrinha."],
           ["Chambéry", "O mais perto (≈ 1h15), mas com poucos voos."],
           ["Comboio", "Estação de Moûtiers, a 18 km. Depois autocarro (≈ 45 min) ou táxi."],
         ]),
-        h("p", { class: "small muted" }, "Para 9 pessoas com crianças e malas, um transfer privado tende a sair parecido com lugares partilhados e é bem mais simples."),
+        h("p", { class: "small muted" }, "Para 8 pessoas com malas e uma criança, um transfer privado tende a sair parecido com lugares partilhados e é bem mais simples. Na volta, sair de Méribel por volta das 14h."),
         h("p", { class: "small" }, a("https://seemeribel.com/transfers/guide", "Guia de transfers"))),
       card("Na neve",
         facts([
