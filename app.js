@@ -93,7 +93,8 @@ const family = id => S.families.find(f => f.id === id);
 const pname = id => person(id)?.name.split(" ")[0] || "?";
 const famMembers = fid => S.people.filter(p => p.family_id === fid);
 const famLabel = fid => { const m = famMembers(fid); return m.length > 1 ? `${family(fid)?.name} (${m.length})` : family(fid)?.name; };
-const trip = () => S.settings.trip || { start: "2027-01-05", end: "2027-01-10" };
+const trip = () => S.settings.trip || { start: "2027-01-06", end: "2027-01-11" };
+const tripShort = () => { const t = trip(); return `${t.start.slice(8)}—${t.end.slice(8)}.${t.end.slice(5, 7)}`; };
 const stay = () => S.settings.stay || {};
 const statusOf = (item, pid) => S.status.find(s => s.item_id === item.id && s.person_id === pid)?.status || defaultStatus(item);
 
@@ -218,7 +219,7 @@ const toLocalInput = iso => { if (!iso) return ""; const d = new Date(iso); retu
 const head = (title, sub, ...right) => {
   const i = VIEWS.findIndex(([k]) => k === S.view);
   return h("div", { class: "view-head" },
-    h("div", { class: "vh-top" }, h("span", { class: "lbl" }, `${pad(i + 1)} / ${pad(VIEWS.length)}`), h("span", { class: "lbl" }, "Méribel 2027 · 05—10.01")),
+    h("div", { class: "vh-top" }, h("span", { class: "lbl" }, `${pad(i + 1)} / ${pad(VIEWS.length)}`), h("span", { class: "lbl" }, `Méribel 2027 · ${tripShort()}`)),
     h("div", { class: "vh-row" }, h("h2", { class: "display-s" }, h("span", { class: "ln" }, h("span", null, title))), h("div", { class: "head-r" }, sub ? h("p", null, sub) : null, ...right)));
 };
 const empty = t => h("p", { class: "empty" }, t);
@@ -511,7 +512,7 @@ function renderViagem() {
     h("div", { class: "block-head" }, h("h3", null, "Voos, carros e transfers"), h("button", { class: "pill sm", type: "button", onclick: () => editTravel() }, "Adicionar")),
     items.length ? h("div", { class: "list" }, items.map(t => h("button", { type: "button", class: "row travel", onclick: () => editTravel(t) },
       h("span", { class: "kind" }, KINDS[t.kind]),
-      h("span", { class: "t" }, h("b", null, t.title), h("span", { class: "muted small" }, [t.depart_at ? F.dt.format(new Date(t.depart_at)) : null, t.arrive_at ? "chega " + F.time.format(new Date(t.arrive_at)) : null].filter(Boolean).join(" → ") || "sem horário"),
+      h("span", { class: "t" }, h("b", null, t.title), h("span", { class: "muted small" }, [t.depart_at ? fmtAt(F_DT, t.depart_at, legTz(t.title, "from")) : null, t.arrive_at ? "chega " + fmtAt(F_TIME, t.arrive_at, legTz(t.title, "to")) : null].filter(Boolean).join(" → ") || "sem horário"),
         t.details ? h("span", { class: "small", style: "white-space:pre-line" }, t.details) : null),
       h("span", { class: "tags" }, (t.who.length === S.people.length ? ["Todos"] : t.who.map(pname)).map(n => h("span", { class: "tag" }, n)))))) : empty("Sem viagens registadas."));
 
@@ -528,7 +529,7 @@ function editStay() {
     { k: "name", label: "Nome", value: st.name || "", placeholder: "Chalet …" },
     { k: "address", label: "Morada", value: st.address || "" },
     { k: "checkin", label: "Check-in", value: st.checkin || "", placeholder: "Ter 5 jan · 16h" },
-    { k: "checkout", label: "Check-out", value: st.checkout || "", placeholder: "Dom 10 jan · 10h" },
+    { k: "checkout", label: "Check-out", value: st.checkout || "", placeholder: "Seg 11 jan · 10h" },
     { k: "price", label: "Preço total", value: st.price || "" },
     { k: "rooms", label: "Quartos", type: "textarea", value: st.rooms || "" },
     { k: "link", label: "Link da reserva", type: "url", value: st.link || "" },
@@ -555,6 +556,17 @@ function editTravel(t) {
     if (ok) { await load("travel"); render(); } return ok;
   }, t.id ? { onDelete: async () => { const ok = await run(sb.from("trip_travel").delete().eq("id", t.id)); if (ok) { await load("travel"); render(); } return ok; } } : {});
 }
+
+/* Flight times are shown in the airport's local time: anything in France or Geneva uses Paris time. */
+const ALPS = /lyon|lys|genebra|gen[eè]ve|gva|chamb[eé]ry|grenoble|m[eé]ribel|mo[uû]tiers/i;
+function legTz(title, side) {
+  const [a, b] = String(title).split(/→|->/);
+  const part = side === "from" ? a : b;
+  return part && ALPS.test(part) ? "Europe/Paris" : "Europe/Lisbon";
+}
+const F_DT = { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" };
+const F_TIME = { hour: "2-digit", minute: "2-digit" };
+const fmtAt = (opts, iso, timeZone) => new Intl.DateTimeFormat("pt-PT", { ...opts, timeZone }).format(new Date(iso));
 
 /* ================= PLANO ================= */
 function renderPlano() {
@@ -631,14 +643,14 @@ function renderInfo() {
     h("div", { class: "grid-2" },
       card("Forfait",
         facts([
-          ["Época", "5 dez 2026 — 18 abr 2027. 5–10 jan é época alta."],
+          ["Época", "5 dez 2026 — 18 abr 2027. 6–11 jan é época alta."],
           ["3 Vallées, 6 dias", "Adulto (18–74) ≈ 421 € · Criança (5–17) ≈ 345 €"],
           ["Méribel Vallée, 6 dias", "≈ 356 € adulto. Mais barato, mas só o vale de Méribel."],
           ["Family Flex", "2 adultos + 1 a 6 crianças pagam todos o preço de criança. Mesma duração, uma só compra."],
           ["Grátis", "Menos de 5 anos e mais de 75, com comprovativo."],
           ["Carré Neige", "Seguro de ski ≈ 21 € por pessoa para 6 dias."],
         ]),
-        h("p", { class: "small muted" }, "Chegando a 5 e saindo a 10, o mais provável são 4 ou 5 dias de ski. Vale a pena decidir em grupo para comprar tudo de uma vez."),
+        h("p", { class: "small muted" }, "Chegamos a 6 à noite e o voo de volta é a 11 às 18:35 em Lyon: são 4 dias completos de ski (7 a 10). Vale a pena decidir em grupo e comprar tudo de uma vez."),
         h("p", { class: "small" }, a("https://www.skipassmeribelmottaret.com/en/skipass-prices-3-vallees", "Preços 3 Vallées"), " · ", a("https://www.skipassmeribelmottaret.com/en/meribel-skipass-prices", "Preços Méribel"))),
       card("Como chegar",
         facts([

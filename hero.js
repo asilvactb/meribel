@@ -112,19 +112,20 @@ let built = false;
 export function buildHero(box, { start, end, onScrollDown, people = 0, families = 0 }) {
   if (built) return;
   built = true;
+  const end0 = new Date(end.getTime() - 864e5); // `end` is the day after the last day
   const HERO = PHOTOS.slice(0, 5);
   const slides = HERO.map((id, i) => { const s = el("div", "slide" + (i === 0 ? " on" : "")); if (i < 2) s.style.backgroundImage = `url("${photoUrl(id)}")`; return s; });
   const media = el("div", "h-media", slides);
   const canvas = el("canvas", "h-snow");
   const dots = el("div", "h-dots", HERO.map((_, i) => el("i", i === 0 ? "on" : null)));
   const unit = (id, label) => el("div", "u", Object.assign(el("span", "roll"), { id }), el("small", null, label));
-  const words = ["Méribel 2027", `${people} pessoas`, `${families} famílias`, "Les 3 Vallées", "600 km de pistas", "5 — 10 janeiro", "Après-ski", "Fondue", "Primeira descida"];
+  const words = ["Méribel 2027", `${people} pessoas`, `${families} famílias`, "Les 3 Vallées", "600 km de pistas", `${start.getDate()} — ${end0.getDate()} janeiro`, "Après-ski", "Fondue", "Primeira descida"];
   const line = () => el("div", "mq-set", words.map(w => [el("span", null, w), el("b", null, "✱")]));
   const cta = el("a", "pill h-cta", "Ver o que falta tratar", el("span", null, "→")); cta.href = "#tratar";
   const down = el("button", "h-down", el("i"), el("span", null, "Scroll para explorar")); down.type = "button"; down.onclick = onScrollDown;
   box.replaceChildren(
     media, el("div", "h-shade"), canvas, el("div", "h-grain"),
-    el("div", "h-top", el("span", "acc", "Méribel — Les 3 Vallées"), el("span", "hide-s", "45°24′N  6°34′E  ·  1450 m"), el("span", null, "05—10.01.2027")),
+    el("div", "h-top", el("span", "acc", "Méribel — Les 3 Vallées"), el("span", "hide-s", "45°24′N  6°34′E  ·  1450 m"), el("span", null, `${String(start.getDate()).padStart(2, "0")}—${String(end0.getDate()).padStart(2, "0")}.01.${end0.getFullYear()}`)),
     el("div", "h-main",
       el("p", "h-kicker", el("i"), el("span", null, "Faltam")),
       el("div", "h-days", Object.assign(el("span", "roll big"), { id: "cd-d" }), el("span", "h-unit", "dias")),
