@@ -109,7 +109,7 @@ function snow(canvas, host) {
 
 /* ---------- hero, built once ---------- */
 let built = false;
-export function buildHero(box, { start, end, onScrollDown }) {
+export function buildHero(box, { start, end, onScrollDown, people = 0, families = 0 }) {
   if (built) return;
   built = true;
   const HERO = PHOTOS.slice(0, 5);
@@ -118,7 +118,7 @@ export function buildHero(box, { start, end, onScrollDown }) {
   const canvas = el("canvas", "h-snow");
   const dots = el("div", "h-dots", HERO.map((_, i) => el("i", i === 0 ? "on" : null)));
   const unit = (id, label) => el("div", "u", Object.assign(el("span", "roll"), { id }), el("small", null, label));
-  const words = ["Méribel 2027", "9 pessoas", "5 famílias", "Les 3 Vallées", "600 km de pistas", "5 — 10 janeiro", "Après-ski", "Fondue", "Primeira descida"];
+  const words = ["Méribel 2027", `${people} pessoas`, `${families} famílias`, "Les 3 Vallées", "600 km de pistas", "5 — 10 janeiro", "Après-ski", "Fondue", "Primeira descida"];
   const line = () => el("div", "mq-set", words.map(w => [el("span", null, w), el("b", null, "✱")]));
   const cta = el("a", "pill h-cta", "Ver o que falta tratar", el("span", null, "→")); cta.href = "#tratar";
   const down = el("button", "h-down", el("i"), el("span", null, "Scroll para explorar")); down.type = "button"; down.onclick = onScrollDown;
@@ -187,16 +187,19 @@ export function setHeroSub(box, text) {
 }
 
 /* ---------- pinned story: giant lines slide and blur while a photo opens up ---------- */
+const NUM = ["zero", "uma", "duas", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez", "onze", "doze"];
+const word = n => NUM[n] || String(n);
 const STEPS = [
-  ["Nove pessoas,", "cinco famílias."],
+  ["Nove pessoas,", "cinco famílias."], // replaced with live counts in buildStory
   ["Seiscentos quilómetros", "de pistas."],
   ["Uma conta partilhada.", "Zero confusões."],
   ["Só falta", "lá chegar."],
 ];
 let storyBuilt = false;
-export function buildStory(box) {
+export function buildStory(box, { people = 0, families = 0 } = {}) {
   if (storyBuilt) return;
   storyBuilt = true;
+  if (people) STEPS[0] = [`${word(people).replace(/^./, c => c.toUpperCase())} ${people === 1 ? "pessoa" : "pessoas"},`, `${word(families)} ${families === 1 ? "família" : "famílias"}.`];
   const lines = el("div", "st-lines", el("div", null, "Primeira descida"), el("div", null, "Último après-ski"), el("div", null, "Todos juntos"));
   const ids = [PHOTOS[5], PHOTOS[1], PHOTOS[3], PHOTOS[0]];
   const phs = ids.map((id, i) => { const p = el("div", "ph" + (i === 0 ? " on" : "")); p.style.backgroundImage = `url("${photoUrl(id, 2000)}")`; return p; });

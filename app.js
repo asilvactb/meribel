@@ -99,14 +99,20 @@ const statusOf = (item, pid) => S.status.find(s => s.item_id === item.id && s.pe
 
 /* ================= auth ================= */
 let picked = null;
-function showLogin() {
+// Who can log in comes from the database (so new people appear without a deploy); config.js is the fallback.
+let logins = LOGINS;
+async function loadLogins() {
+  try { const { data, error } = await sb.rpc("trip_logins"); if (!error && data?.length) logins = data; } catch {}
+}
+async function showLogin() {
+  await loadLogins();
   $("#app").hidden = true; $("#denied").hidden = true; $("#login").hidden = false;
   const sel = $("#login-who");
-  sel.replaceChildren(h("option", { value: "", disabled: true }, "Escolhe o teu nome"), ...LOGINS.map(l => h("option", { value: l.id }, l.name)));
+  sel.replaceChildren(h("option", { value: "", disabled: true }, "Escolhe o teu nome"), ...logins.map(l => h("option", { value: l.id }, l.name)));
   let last = null; try { last = localStorage.getItem("meribel_who"); } catch {}
-  sel.value = LOGINS.some(l => l.id === last) ? last : "";
-  sel.onchange = () => { picked = LOGINS.find(l => l.id === sel.value); $("#login-pass").focus(); };
-  picked = LOGINS.find(l => l.id === sel.value) || null;
+  sel.value = logins.some(l => l.id === last) ? last : "";
+  sel.onchange = () => { picked = logins.find(l => l.id === sel.value); $("#login-pass").focus(); };
+  picked = logins.find(l => l.id === sel.value) || null;
   loginMedia($(".login-media"));
   requestAnimationFrame(() => document.body.classList.add("ready"));
   snow();
@@ -284,8 +290,8 @@ function renderResumo() {
   const cells = S.items.length * S.people.length || 1;
   const done = S.items.reduce((a, it) => a + S.people.filter(p => ["tratado", "nao"].includes(statusOf(it, p.id))).length, 0);
 
-  buildHero($("#hero"), { start: parseYmd(t.start), end: addDays(parseYmd(t.end), 1), onScrollDown: () => window.scrollTo({ top: innerHeight - 70, behavior: "smooth" }) });
-  buildStory($("#story"));
+  buildHero($("#hero"), { start: parseYmd(t.start), end: addDays(parseYmd(t.end), 1), people: S.people.length, families: S.families.length, onScrollDown: () => window.scrollTo({ top: innerHeight - 70, behavior: "smooth" }) });
+  buildStory($("#story"), { people: S.people.length, families: S.families.length });
   setHeroSub($("#hero"), st.name ? `${st.name}${st.address ? " · " + st.address : ""}` : `Alojamento por fechar · ${pending} coisas por tratar`);
 
   const kpis = h("div", { class: "kpis" },
