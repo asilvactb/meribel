@@ -602,14 +602,18 @@ function renderMala() {
   const who = person(S.malaFor) || S.me;
   const mine = famMembers(S.me.family_id), others = S.people.filter(p => p.family_id !== S.me.family_id);
   const pickBtn = p => h("button", { type: "button", class: "chip" + (p.id === who.id ? " on" : ""), onclick: () => { S.malaFor = p.id; render(); } }, p.name.split(" ")[0]);
-  const items = S.packing.filter(i => !i.kids_only || !who.adult);
+  // shared items (no owner) for everyone, plus this person's own items
+  const items = S.packing.filter(i => i.owner ? i.owner === who.id : (!i.kids_only || !who.adult));
   const done = new Set(S.packDone.filter(d => d.person_id === who.id).map(d => d.item_id));
   const n = items.filter(i => done.has(i.id)).length;
   const groups = PACK_CATS.concat([...new Set(items.map(i => i.cat))].filter(c => !PACK_CATS.includes(c))).map(c => [c, items.filter(i => i.cat === c)]).filter(([, xs]) => xs.length);
-  const inp = h("input", { placeholder: "Adicionar à lista de todos" });
+  const toWho = who.id === S.me.id ? "à tua mala" : `à mala de ${who.name.split(" ")[0]}`;
+  const inp = h("input", { placeholder: `Adicionar ${toWho}` });
   const cat = h("select", { "aria-label": "Categoria" }, PACK_CATS.map(c => h("option", null, c))); cat.value = "Outros";
+  const scope = h("select", { "aria-label": "Para quem" }, h("option", { value: "me" }, who.id === S.me.id ? "Só para mim" : `Só para ${who.name.split(" ")[0]}`), h("option", { value: "all" }, "Para todos"));
+  scope.onchange = () => { inp.placeholder = scope.value === "all" ? "Adicionar à lista de todos" : `Adicionar ${toWho}`; };
   v.replaceChildren(
-    head("Mala", "A lista é a mesma para todos; cada um marca a sua. Os pais podem marcar a dos filhos."),
+    head("Mala", "Há uma lista base para todos e cada um junta as suas coisas. Os pais podem tratar da mala dos filhos."),
     h("div", { class: "chips" }, mine.map(pickBtn), h("span", { class: "sep" }), others.map(pickBtn)),
     h("div", { class: "block" },
       h("div", { class: "block-head" }, h("h3", null, who.id === S.me.id ? "A tua mala" : `Mala de ${who.name.split(" ")[0]}`), h("span", { class: "muted small num" }, `${n}/${items.length}`)),
@@ -617,8 +621,13 @@ function renderMala() {
       groups.map(([c, xs]) => h("div", { class: "pack-group" }, h("p", { class: "day-h" }, c), h("div", { class: "list" }, xs.map(i => h("div", { class: "row todo" + (done.has(i.id) ? " done" : "") },
         h("button", { type: "button", class: "tick" + (done.has(i.id) ? " on" : ""), "aria-label": i.title, onclick: () => togglePack(i, who) }, svg('<path d="m6 12.5 4 4 8-9"/>')),
         h("span", { class: "t" }, i.title),
-        h("button", { type: "button", class: "x", "aria-label": "Tirar da lista de todos", title: "Tirar da lista de todos", onclick: e => removePack(i, e) }, "×")))))),
-      h("form", { class: "add-row", onsubmit: async e => { e.preventDefault(); const t = inp.value.trim(); if (!t) return; if (await run(sb.from("trip_packing").insert({ title: t, cat: cat.value, sort: 100 }))) { inp.value = ""; await load("packing"); render(); } } }, inp, cat, h("button", { class: "pill sm", type: "submit" }, "Adicionar"))));
+        i.owner ? h("span", { class: "tag" }, "só " + (i.owner === S.me.id ? "teu" : pname(i.owner))) : null,
+        h("button", { type: "button", class: "x", "aria-label": i.owner ? "Tirar" : "Tirar da lista de todos", title: i.owner ? "Tirar" : "Tirar da lista de todos", onclick: e => removePack(i, e) }, "×")))))),
+      h("form", { class: "add-row", onsubmit: async e => {
+        e.preventDefault(); const t = inp.value.trim(); if (!t) return;
+        const row = { title: t, cat: cat.value, sort: 100, owner: scope.value === "all" ? null : who.id };
+        if (await run(sb.from("trip_packing").insert(row), scope.value === "all" ? "Adicionado à lista de todos" : `Adicionado ${toWho}`)) { inp.value = ""; await load("packing"); render(); }
+      } }, inp, cat, scope, h("button", { class: "pill sm", type: "submit" }, "Adicionar"))));
 }
 async function togglePack(i, who) {
   const has = S.packDone.some(d => d.item_id === i.id && d.person_id === who.id);
